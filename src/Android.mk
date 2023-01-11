@@ -1,4 +1,5 @@
-LOCAL_PATH := external/dnsmasq/src
+#LOCAL_PATH := external/dnsmasq/src
+LOCAL_PATH := $(call my-dir)
 
 #########################
 
@@ -12,7 +13,7 @@ LOCAL_SRC_FILES :=  bpf.c cache.c dbus.c dhcp.c dnsmasq.c \
 
 LOCAL_MODULE := dnsmasq
 
-LOCAL_C_INCLUDES := external/dnsmasq/src
+LOCAL_C_INCLUDES := 
 
 LOCAL_CFLAGS := -O2 -g -W -Wall -D__ANDROID__ -DNO_IPV6 -DNO_TFTP -DNO_SCRIPT
 LOCAL_SYSTEM_SHARED_LIBRARIES := libc libcutils

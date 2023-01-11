@@ -18,6 +18,8 @@
 
 #ifdef HAVE_DHCP
 
+#define ETHER_ADDR_LEN 6
+
 struct iface_param {
   struct dhcp_context *current;
   int ind;

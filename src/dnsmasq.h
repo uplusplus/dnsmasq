@@ -15,6 +15,7 @@
 */
 
 #define COPYRIGHT "Copyright (c) 2000-2013 Simon Kelley" 
+#define VERSION "JOY"
 
 #ifndef NO_LARGEFILE
 /* Ensure we can use files >2GB (log files may grow this big) */
