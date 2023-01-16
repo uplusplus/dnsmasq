@@ -48,7 +48,8 @@ DHCPv6 server->>DHCPv6 client: Reply
 sequenceDiagram
 DHCPv6 client->>DHCPv6 server: Renew（T1）
 DHCPv6 server->>DHCPv6 client: Reply
-
+```
+```mermaid
 sequenceDiagram
 DHCPv6 client->>DHCPv6 server: Renew（T1）
 DHCPv6 client->>DHCPv6 server: ...
