@@ -14,6 +14,7 @@ ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=Android.mk
 
 ### 简介
 DHCPv6是一个用来配置工作在IPv6网络上的IPv6主机所需的IP地址、IP前缀和/或其他配置的网络协议。
+与IPv4通过DHCP下发地址方式不同的是，IPv6地址可以不通过DHCP方式获取。归功于IPv6所支持的无状态地址配置机制，由RFC4862定义。  
 IPv6主机可以使用无状态地址自动配置（SLAAC）或DHCPv6来获得IP地址。DHCP倾向于被用在需要集中管理主机的站点，而无状态自动配置不需要任何集中管理，因此后者更多地被用在典型家庭网络这样的场景下。  
 使用无状态自动配置的IPv6主机可能会需要除了IP地址以外的其他信息。DHCPv6可被用来获取这样的信息，哪怕这些信息对于配置IP地址毫无用处。配置DNS服务器无需使用DHCPv6，它们可以使用无状态自动配置所需的邻居发现协议来进行配置。  
 IPv6路由器，如家庭路由器，必须在无需人工干预的情况下被自动配置。这样的路由器不仅需要一个IPv6地址用来与上游路由器通信，还需要一个IPv6前缀用来配置下游的设备。DHCPv6前缀代理提供了配置此类路由器的机制。 [1]
@@ -31,6 +32,37 @@ DHCPv6客户端从[fe80::aabb:ccff:fedd:eeff]:546 发送Solicit至 [ff02::1:2]:5
 DHCPv6服务器从[fe80::0011:22ff:fe33:5566]:547 回应一个Advertise给 [fe80::aabb:ccff:fedd:eeff]:546。  
 DHCPv6客户端从[fe80::aabb:ccff:fedd:eeff]:546 回应一个Request给 [ff02::1:2]:547。（依照RFC 3315的section 13，所有客户端消息都发送到多播地址)  
 DHCPv6服务器以[fe80::0011:22ff:fe33:5566]:547 到[fe80::aabb:ccff:fedd:eeff]:546 的Reply结束。 [1]
+
+### 地址配置
+#### 有状态地址自动配置
+在有状态地址自动配置的方式下，DHCPv6 服务器分配一个完整的 IPv6 地址给主机，并提供 DNS 服务器地址和域名等其它配置信息，这中间可能通过中继代理转交 DHCPv6 报文，而且最终服务器能把分配的 IPv6 地址和客户端的绑定关系记录在案，从而增强了网络的可管理性。
+
+DPCHv6 地址池的计算，管理全部是服务器端在做，客户端只是简单的从服务器端取得服务器端已经计算好的地址和其他设置应用到自己身上。
+```mermaid
+sequenceDiagram
+DHCPv6 client->>DHCPv6 server: Solicit(Contains a Rapid Commit option)
+DHCPv6 server->>DHCPv6 client: Reply
+```
+#### 续约
+```mermaid
+sequenceDiagram
+DHCPv6 client->>DHCPv6 server: Renew（T1）
+DHCPv6 server->>DHCPv6 client: Reply
+
+sequenceDiagram
+DHCPv6 client->>DHCPv6 server: Renew（T1）
+DHCPv6 client->>DHCPv6 server: ...
+DHCPv6 client->>DHCPv6 server: Rebind（T2）
+DHCPv6 server->>DHCPv6 client: Reply
+```
+#### 地址冲突
+如果DHCPv6客户端发现服务器分配的地址已经被其它节点占用，客户端要向服务器发出DECLINE报文，通知冲突地址的发生，服务器回应以REPLY消息。
+
+#### 租约确认
+DHCPv6客户端链路因某种原因中断又恢复，或者客户端连接到新的链路以后，客户端要向服务器发送CONFIRM报文希望确定当前被分配的地址是否仍然适合连接的链路。服务器回应REPLY报文或不作响应。
+
+#### 释放地址
+最后客户端不再使用分配的地址时，向选定的服务器发送RELEASE消息请求服务器回收分配的IPv6地址。
 
 ### RA报文M/O标志位
 设备在获取IPv6地址等信息时，会先发送RS报文请求链路上的路由设备，路由设备受到RS报文后会发送相应的RA报文来表示自身能够提供的IPv6服务类型。  
@@ -78,6 +110,15 @@ FE80::FF:3BA:891:67C2
 
 ### IPV6在Android实例
 
+#### IPv6的两种单播地址类型
+- 本地链路地址  
+IPv6的地址类型。IPv6单播地址可以分为本地链路地址和全局地址。  
+IPv6本地链路地址以fe80::/10开头，通常由系统自动为每个网络设备生成。例如下图中的fe80::250:56ff:fe86:1b10就是IPv6 link local地址。  
+有了这个地址，在同一个交换机下面的机器就能直接通过这个地址通讯啦，不需要再配置别的地址。  
+- 全局地址
+全局地址是通过IPv6前缀下发所拿到的一个全局可达的IPv6地址，例如下图中的fd4d:e0f1:f1db::250:56ff:fe86:1b10。有了这个全局IPv6地址，就能跟世界上任何一个IPv6全局地址通讯了，类似于通俗说的公网地址。所以IPv6本地链路地址只有本地链路可达，而IPv6全局地址则所有IPv6网络都可达。  
+
+
 #### ifconfig的显示
 ```
 wlan0     Link encap:Ethernet  HWaddr 52:ae:84:0d:c2:80
@@ -96,6 +137,7 @@ p2p-p2p0-1 Link encap:Ethernet  HWaddr d2:80:e8:2c:8b:0c
           // 基于地址前缀生成，后部随机，隐私IP，用于与外部通信 (前缀+随机地址生成)
           inet6 addr: fe80::d080:e8ff:fe2c:8b0c/64 Scope: Link 		    
           // 本地链路地址，只用于与路由器直接通信 (前缀+MAC地址生成)
+          // MAC变换：反转第7个bit,在中间插入ff-fe,得到d2:80:e8:2c:8b:0c => d080:e8ff:fe2c:8b0c
           UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
           RX packets:396 errors:0 dropped:0 overruns:0 frame:0
           TX packets:170 errors:0 dropped:0 overruns:0 carrier:0
@@ -125,3 +167,59 @@ p2p-p2p0-0 Link encap:Ethernet  HWaddr 62:41:ab:b3:37:f6
           RX bytes:0 TX bytes:7876
 
 ```
+
+### 术语
+#### SLAAC
+slaac是IPv6中的术语。Stateless address autoconfiguration，无状态地址自动配置。  
+一个路由IPv6网络使用ICMPv6路由发现协议。IPv6主机第一次连接到网络时自动进行配置，发送一个本地路由请求组播，获取它的配置参数。如果配置合理，路由器返回一个路由通告包，其中包含了网络层配置参数。  
+如果IPv6无状态地址自动配置不适合于应用，网络可能使用状态配置，采用DHCPv6或主机静态配置。  
+路由器为地址配置指定了一个情景。路由器作为自动配置信息源，提供路由和网络地址通告。路由器的无状态配置能够通过特定的路由地址更新协议获得。  
+自动配置过程的运作大致如下：  
+1. 主机配置链路本地地址；  
+2. 主机检查地址是否唯一，即主机对（暂时）地址执行重复地址检测（DAD）；  
+3. 主机发送路由器请求消息；  
+4. 在接收路由器通告（RA）后，主机为接收的路由器通告中的每个前缀配置一个或多个暂时IPv6地址；  
+5. 主机检查地址是否唯一，即对暂时地址执行DAD；  
+6. 如果地址是唯一的，它通常会成为“首选”地址，可以积极用于网络通信。   
+
+#### Router Advertisement
+路由器通告(Router Advertisement)：路由器周期性地通告它的存在以及配置的链路和网络参数，或者对路由器请求消息作出响应。路由器通告消息包含在连接(on-link)确定、地址配置的前缀和跳数限制值等。  
+在IPV6的自动配置中，分为两种技术：  
+- 一种是传统的有状态(stateful),典型代表就是与IPv4时代相对应的DHCPv6，  
+- 一种是IPv6的无状态(stateless)自动配置，典型代表是Radvd。这是IPv6协议的一个突出特点:支持网络节点的地址自动配置.  
+在无状态地址自动配置方式下，网络接口接收路由器宣告的全局地址前缀，再结合接口ID得到一个可聚集全局单播地址。  
+在有状态地址自动配置的方式下，主要采用动态主机配置协议（DHCP），需要配备专门的DHCP服务器，网络接口通过客户机/服务器模式从DHCP服务器处得到地址配置信息。  
+具体来说，以RADVD为代表的无状态自动配置不需要消耗很多机器资源，也不像传统DHCP一样需要维护一个本地数据库来维护地址分配状态，他只是进行广播前缀地址，客户端收到这种广播后再自己使用EUI64算法生成全球唯一的IPv6地址，进行自我配置。  
+因此，RADVD不能进行NTP/DNS等其他传统DHCP服务器所能进行的配置。甚至严格的说，她只进行路由广播，地址都是客户端自己根据算法和规范在配置。  
+DCHPv6就完全相反，地址池的计算，管理全部是服务器端在做，客户端只是简单的从服务器端取得服务器端已经计算好的地址和其他设置应用到自己身上。
+
+### dnsmasq 配置相关
+.B ra-only
+tells dnsmasq to offer Router Advertisement only on this subnet,
+and not DHCP.   
+仅发布路由通告，不管理IP
+
+.B slaac
+tells dnsmasq to offer Router Advertisement on this subnet and to set
+the A bit in the router advertisement, so that the client will use
+SLAAC addresses. When used with a DHCP range or static DHCP address
+this results in the client having both a DHCP-assigned and a SLAAC
+address.  
+发布路由和地址通告。
+
+.B ra-stateless
+sends router advertisements with the O and A bits set, and provides a
+stateless DHCP service. The client will use a SLAAC address, and use
+DHCP for other configuration information.
+
+.B ra-names
+enables a mode
+which gives DNS names to dual-stack hosts which do SLAAC for
+IPv6. Dnsmasq uses the host's IPv4 lease to derive the name, network
+segment and MAC address and assumes that the host will also have an
+IPv6 address calculated using the SLAAC algorithm, on the same network
+segment. The address is pinged, and if a reply is received, an AAAA
+record is added to the DNS for this IPv6
+address. Note that this is only happens for directly-connected
+networks, (not one doing DHCP via a relay) and it will not work 
+if a host is using privacy extensions. 
