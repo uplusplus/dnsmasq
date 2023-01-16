@@ -210,7 +210,8 @@ address.
 .B ra-stateless
 sends router advertisements with the O and A bits set, and provides a
 stateless DHCP service. The client will use a SLAAC address, and use
-DHCP for other configuration information.
+DHCP for other configuration information.  
+通过slaac获取IP，通过有状态协议（如DHCPv6）获取除地址外设为其他配置信息，如DNS，SIP服务器信息。
 
 .B ra-names
 enables a mode
