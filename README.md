@@ -1,3 +1,4 @@
+[TOC]
 # dnsmasq ndk编译
 
 ## 准备
@@ -10,31 +11,49 @@ ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=Android.mk
 
 
 
-## 关于dhcp6
+# 关于dhcp6
 
-### 简介
+## 简介
 DHCPv6是一个用来配置工作在IPv6网络上的IPv6主机所需的IP地址、IP前缀和/或其他配置的网络协议。
 与IPv4通过DHCP下发地址方式不同的是，IPv6地址可以不通过DHCP方式获取。归功于IPv6所支持的无状态地址配置机制，由RFC4862定义。  
 IPv6主机可以使用无状态地址自动配置（SLAAC）或DHCPv6来获得IP地址。DHCP倾向于被用在需要集中管理主机的站点，而无状态自动配置不需要任何集中管理，因此后者更多地被用在典型家庭网络这样的场景下。  
 使用无状态自动配置的IPv6主机可能会需要除了IP地址以外的其他信息。DHCPv6可被用来获取这样的信息，哪怕这些信息对于配置IP地址毫无用处。配置DNS服务器无需使用DHCPv6，它们可以使用无状态自动配置所需的邻居发现协议来进行配置。  
 IPv6路由器，如家庭路由器，必须在无需人工干预的情况下被自动配置。这样的路由器不仅需要一个IPv6地址用来与上游路由器通信，还需要一个IPv6前缀用来配置下游的设备。DHCPv6前缀代理提供了配置此类路由器的机制。 [1]
 
-### 实现
-#### 端口号
+## 实现
+### 端口号
 DHCPv6客户端使用UDP端口号546，服务器使用端口号547。
 
-#### DHCP唯一标识符
+### DHCP唯一标识符
 DHCP唯一标识符（DUID）用于客户端从DHCPv6服务器获得IP地址。最小长度为12个字节（96位），最大长度为20字节（160位）。实际长度取决于其类型。服务器将DUID与其数据库进行比较，并将配置数据（地址、租期、DNS服务器，等等）发送给客户端。DUID的前16位包含了DUID的三种类型之一。剩余的96位取决于DUID类型。
 
-#### 举例
+### 举例
 本例中，服务器的链路本地地址是fe80::0011:22ff:fe33:5566，客户端的链路本地地址是fe80::aabb:ccff:fedd:eeff。  
 DHCPv6客户端从[fe80::aabb:ccff:fedd:eeff]:546 发送Solicit至 [ff02::1:2]:547。  
 DHCPv6服务器从[fe80::0011:22ff:fe33:5566]:547 回应一个Advertise给 [fe80::aabb:ccff:fedd:eeff]:546。  
 DHCPv6客户端从[fe80::aabb:ccff:fedd:eeff]:546 回应一个Request给 [ff02::1:2]:547。（依照RFC 3315的section 13，所有客户端消息都发送到多播地址)  
 DHCPv6服务器以[fe80::0011:22ff:fe33:5566]:547 到[fe80::aabb:ccff:fedd:eeff]:546 的Reply结束。 [1]
 
-### 地址配置
-#### 有状态地址自动配置
+
+|DHCPv6 消息|	描述|	等效的 DHCPv4 消息|
+|------|------|------|
+|要求（solicit）	|由客户端发送以定位服务器。|	DHCPDiscover|
+|公告（advertise）|	由服务器对 “要求” 消息进行响应时发送以指明可用性。	|DHCPOffer|
+|请求（request）|	由客户端发送以请求来自特定服务器的地址或配置设置。	|DHCPRequest|
+|确认（confirm）|	由客户端发送给所有服务器，以确定对于已连接的链接客户端的配置是否有效。	|DHCPRequest|
+|更新（renew）	|由客户端发送给特定服务器以延长分配地址的生存期并获取更新的配置设置。	|DHCPRequest|
+|重新绑定（rebind）|	未接收到对 “更新” 消息的响应时由客户端发送给任何服务器。	|DHCPRequest|
+|应答（reply）|	对要求、请求、更新、重新绑定、信息请求、确认、发布或拒绝消息进行响应时由服务器发送给特定客户端。|	DHCPAck|
+|发布（release）	|由客户端发送以指明客户端不再使用分配的地址。	|DHCPRelease|
+|拒绝（decline）|	由客户端发送给特定服务器以指明分配的地址已在使用中。	|DHCPDecline|
+|重新配置（reconfigure）|	由服务器发送给客户端以指明该服务器具有新的或更新的配置设置。客户端随后发送 “更新” 或“信息请求”消息。|	N/A|
+|信息请求（information-request）|	由客户端发送以请求配置设置（但不包括地址）。	|DHCPInform|
+|中继转发（relay-forw）|	由中继代理发送以转发消息给服务器。中继转发包含封装为 DHCPv6 中继消息选项的客户端消息。	|N/A|
+|中继应答（relay-reply）	|由服务器发送以通过中继代理发送消息给客户端。中继应答包含封装为 DHCPv6 中继消息选项的服务器消息。	|N/A|
+
+
+## 地址配置
+### 有状态地址自动配置
 在有状态地址自动配置的方式下，DHCPv6 服务器分配一个完整的 IPv6 地址给主机，并提供 DNS 服务器地址和域名等其它配置信息，这中间可能通过中继代理转交 DHCPv6 报文，而且最终服务器能把分配的 IPv6 地址和客户端的绑定关系记录在案，从而增强了网络的可管理性。
 
 DPCHv6 地址池的计算，管理全部是服务器端在做，客户端只是简单的从服务器端取得服务器端已经计算好的地址和其他设置应用到自己身上。
@@ -43,7 +62,7 @@ sequenceDiagram
 DHCPv6 client->>DHCPv6 server: Solicit(Contains a Rapid Commit option)
 DHCPv6 server->>DHCPv6 client: Reply
 ```
-#### 续约
+### 续约
 ```mermaid
 sequenceDiagram
 DHCPv6 client->>DHCPv6 server: Renew（T1）
@@ -56,16 +75,16 @@ DHCPv6 client->>DHCPv6 server: ...
 DHCPv6 client->>DHCPv6 server: Rebind（T2）
 DHCPv6 server->>DHCPv6 client: Reply
 ```
-#### 地址冲突
+### 地址冲突
 如果DHCPv6客户端发现服务器分配的地址已经被其它节点占用，客户端要向服务器发出DECLINE报文，通知冲突地址的发生，服务器回应以REPLY消息。
 
-#### 租约确认
+### 租约确认
 DHCPv6客户端链路因某种原因中断又恢复，或者客户端连接到新的链路以后，客户端要向服务器发送CONFIRM报文希望确定当前被分配的地址是否仍然适合连接的链路。服务器回应REPLY报文或不作响应。
 
-#### 释放地址
+### 释放地址
 最后客户端不再使用分配的地址时，向选定的服务器发送RELEASE消息请求服务器回收分配的IPv6地址。
 
-### RA报文M/O标志位
+## RA报文M/O标志位
 设备在获取IPv6地址等信息时，会先发送RS报文请求链路上的路由设备，路由设备受到RS报文后会发送相应的RA报文来表示自身能够提供的IPv6服务类型。  
 对于RA报文，根据其M字段和O字段确定其获取IPv6地址的模式：  
 1） M字段：管理地址配置标识（Managed Address Configuration）  
@@ -82,7 +101,7 @@ O=1，标识客户端通过有状态协议（如DHCPv6）获取除地址外设�
 |0|	1|	地址使用RA广播的prefix+ EUI-64计算出来的接口地址,DNS和其他服务器从DHCPv6取得|	Stateless DHCPv6|
 |0|	0|	完全的Stateless配置,仅地址使用RA广播的prefix+ EUI-64计算出来的接口地址|	Stateless AutoConfiguration|
 
-### IETF标准
+## IETF标准
 * RFC 3315, "Dynamic Host Configuration Protocol for IPv6 (DHCPv6)"
 * RFC 3319, "Dynamic Host Configuration Protocol (DHCPv6) Options for Session Initiation Protocol (SIP) Servers"
 * RFC 3633, "IPv6 Prefix Options for Dynamic Host Configuration Protocol (DHCP) version 6"
@@ -91,7 +110,7 @@ O=1，标识客户端通过有状态协议（如DHCPv6）获取除地址外设�
 * RFC 5007, "DHCPv6 Leasequery"
 * RFC 6221, "Lightweight DHCPv6 Relay Agent" [1] 
 
-### IPV6地址格式
+## IPV6地址格式
 一个IPv6的地址使用冒号十六进制表示方法：128位的地址每16位分成一段，每个16位的段用十六进制表示并用冒号分隔开，例如：  
 一个普通公网IPv6地址：2001:0D12:0000:0000:02AA:0987:FE29:9871  
 IPv6地址支持压缩前导零的表示方法，例如上面的地址可以压缩表示为：  
@@ -102,16 +121,16 @@ IPv6地址支持压缩前导零的表示方法，例如上面的地址可以压�
 FE80::FF:3BA:891:67C2  
 这里值得注意的是，双冒号只能出现一次。  
 
-### 设备的IPV6的地址形式
+## 设备的IPV6的地址形式
 通常一个IPV6主机有多个IPV6地址，具体包括以:  
 1、链路本地地址  
 2、单播地址  
 3、环回地址
 
 
-### IPV6在Android实例
+## IPV6在Android实例
 
-#### IPv6的两种单播地址类型
+### IPv6的两种单播地址类型
 - 本地链路地址  
 IPv6的地址类型。IPv6单播地址可以分为本地链路地址和全局地址。  
 IPv6本地链路地址以fe80::/10开头，通常由系统自动为每个网络设备生成。例如下图中的fe80::250:56ff:fe86:1b10就是IPv6 link local地址。  
@@ -120,7 +139,7 @@ IPv6本地链路地址以fe80::/10开头，通常由系统自动为每个网络�
 全局地址是通过IPv6前缀下发所拿到的一个全局可达的IPv6地址，例如下图中的fd4d:e0f1:f1db::250:56ff:fe86:1b10。有了这个全局IPv6地址，就能跟世界上任何一个IPv6全局地址通讯了，类似于通俗说的公网地址。所以IPv6本地链路地址只有本地链路可达，而IPv6全局地址则所有IPv6网络都可达。  
 
 
-#### ifconfig的显示
+### ifconfig的显示
 ```
 wlan0     Link encap:Ethernet  HWaddr 52:ae:84:0d:c2:80
           inet addr:192.168.137.235  Bcast:192.168.137.255  Mask:255.255.255.0
@@ -169,8 +188,8 @@ p2p-p2p0-0 Link encap:Ethernet  HWaddr 62:41:ab:b3:37:f6
 
 ```
 
-### 术语
-#### SLAAC
+## 术语
+### SLAAC
 slaac是IPv6中的术语。Stateless address autoconfiguration，无状态地址自动配置。  
 一个路由IPv6网络使用ICMPv6路由发现协议。IPv6主机第一次连接到网络时自动进行配置，发送一个本地路由请求组播，获取它的配置参数。如果配置合理，路由器返回一个路由通告包，其中包含了网络层配置参数。  
 如果IPv6无状态地址自动配置不适合于应用，网络可能使用状态配置，采用DHCPv6或主机静态配置。  
@@ -183,7 +202,7 @@ slaac是IPv6中的术语。Stateless address autoconfiguration，无状态地址
 5. 主机检查地址是否唯一，即对暂时地址执行DAD；  
 6. 如果地址是唯一的，它通常会成为“首选”地址，可以积极用于网络通信。   
 
-#### Router Advertisement
+### Router Advertisement
 路由器通告(Router Advertisement)：路由器周期性地通告它的存在以及配置的链路和网络参数，或者对路由器请求消息作出响应。路由器通告消息包含在连接(on-link)确定、地址配置的前缀和跳数限制值等。  
 在IPV6的自动配置中，分为两种技术：  
 - 一种是传统的有状态(stateful),典型代表就是与IPv4时代相对应的DHCPv6，  
@@ -194,7 +213,7 @@ slaac是IPv6中的术语。Stateless address autoconfiguration，无状态地址
 因此，RADVD不能进行NTP/DNS等其他传统DHCP服务器所能进行的配置。甚至严格的说，她只进行路由广播，地址都是客户端自己根据算法和规范在配置。  
 DCHPv6就完全相反，地址池的计算，管理全部是服务器端在做，客户端只是简单的从服务器端取得服务器端已经计算好的地址和其他设置应用到自己身上。
 
-### dnsmasq 配置相关
+## dnsmasq 配置相关
 .B ra-only
 tells dnsmasq to offer Router Advertisement only on this subnet,
 and not DHCP.   
@@ -206,13 +225,15 @@ the A bit in the router advertisement, so that the client will use
 SLAAC addresses. When used with a DHCP range or static DHCP address
 this results in the client having both a DHCP-assigned and a SLAAC
 address.  
-发布路由和地址通告。
+发布路由和地址通告。  
+M=0，O=0： SLAAC
 
 .B ra-stateless
 sends router advertisements with the O and A bits set, and provides a
 stateless DHCP service. The client will use a SLAAC address, and use
 DHCP for other configuration information.  
-通过slaac获取IP，通过有状态协议（如DHCPv6）获取除地址外设为其他配置信息，如DNS，SIP服务器信息。
+通过slaac获取IP，通过有状态协议（如DHCPv6）获取除地址外设为其他配置信息，如DNS，SIP服务器信息。  
+M=0，O=1： stateless DHCP
 
 .B ra-names
 enables a mode
