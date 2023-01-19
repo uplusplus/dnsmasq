@@ -20,6 +20,24 @@ IPv6主机可以使用无状态地址自动配置（SLAAC）或DHCPv6来获得IP
 使用无状态自动配置的IPv6主机可能会需要除了IP地址以外的其他信息。DHCPv6可被用来获取这样的信息，哪怕这些信息对于配置IP地址毫无用处。配置DNS服务器无需使用DHCPv6，它们可以使用无状态自动配置所需的邻居发现协议来进行配置。  
 IPv6路由器，如家庭路由器，必须在无需人工干预的情况下被自动配置。这样的路由器不仅需要一个IPv6地址用来与上游路由器通信，还需要一个IPv6前缀用来配置下游的设备。DHCPv6前缀代理提供了配置此类路由器的机制。 [1]
 
+
+## RFC标准
+|协议|编码|
+|----|----|
+|DNS  - Domain Name System|	RFC881  ( EN CN )|
+||RFC882   ( EN CN )|
+||RFC883   ( EN CN )|
+||RFC1034  ( EN CN )|
+||**RFC1035**  ( EN CN )|
+|BOOTP  - Bootstrap Protocol|	RFC951   ( EN CN )|
+|DHCP  - Dynamic Host Configuration Protocol	|RFC1531  ( EN CN )|
+||RFC1541  ( EN CN )|
+||**RFC2131**  ( EN CN )|
+|DHCP v6|	**RFC3315**  ( EN CN )|
+||RFC4580  ( EN CN )|
+||RFC4649  ( EN CN )|
+||RFC4704  ( EN CN )|
+
 ## 实现
 ### 端口号
 DHCPv6客户端使用UDP端口号546，服务器使用端口号547。
