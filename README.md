@@ -47,15 +47,20 @@ sequenceDiagram
 participant dnsmasq
 participant rfc2131
 participant dhcp
+participant lease
 participant rfc3315
 participant dhcp6
+
 
 dnsmasq ->> dhcp:dhcp_packet
 dhcp ->> rfc2131:dhcp_reply
 rfc2131 ->>dhcp:address_allocate
+dhcp ->> lease:lease_find_max_addr
+
 dnsmasq ->> rfc3315:dhcp6_packet
 rfc3315 ->>rfc3315:dhcp6_reply
 rfc3315 ->>dhcp6:address6_allocate
+dhcp6 ->> lease:lease_find_max_addr6
 ```
 
 # 关于dhcp6
