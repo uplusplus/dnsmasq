@@ -46,8 +46,8 @@ Server ->> Client:DHCPACK
 sequenceDiagram
 participant dnsmasq
 participant rfc2131
-participant rfc3315
 participant dhcp
+participant rfc3315
 participant dhcp6
 
 dnsmasq ->> dhcp:dhcp_packet
