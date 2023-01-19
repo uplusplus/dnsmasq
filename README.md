@@ -48,13 +48,14 @@ participant dnsmasq
 participant rfc2131
 participant rfc3315
 participant dhcp
+participant dhcp6
 
 dnsmasq ->> dhcp:dhcp_packet
 dhcp ->> rfc2131:dhcp_reply
 rfc2131 ->>dhcp:address_allocate
 dnsmasq ->> rfc3315:dhcp6_packet
 rfc3315 ->>rfc3315:dhcp6_reply
-rfc3315 ->>dhcp:address_allocate
+rfc3315 ->>dhcp6:address6_allocate
 ```
 
 # 关于dhcp6
