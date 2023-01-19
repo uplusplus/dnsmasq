@@ -566,6 +566,16 @@ struct dhcp_config *config_find_by_address(struct dhcp_config *configs, struct i
   return NULL;
 }
 
+ 
+#define RANDOM_IP_ADDRESS 0
+
+#ifdef RANDOM_IP_ADDRESS
+uint32_t nextAddress(uint32_t start, uint32_t end){
+        srand(dnsmasq_time()); /*根据当前时间设置“随机数种子”*/
+        return rand() % (end-start+1)+start;
+} 
+#endif
+
 int address_allocate(struct dhcp_context *context,
 		     struct in_addr *addrp, unsigned char *hwaddr, int hw_len, 
 		     struct dhcp_netid *netids, time_t now)   
@@ -592,6 +602,9 @@ int address_allocate(struct dhcp_context *context,
 	continue;
       else
 	{
+#if RANDOM_IP_ADDRESS
+          start.s_addr = nextAddress(c->start.s_addr, c->end.s_addr);
+#else
 	  if (option_bool(OPT_CONSEC_ADDR))
 	    /* seed is largest extant lease addr in this context */
 	    start = lease_find_max_addr(c);
@@ -599,7 +612,7 @@ int address_allocate(struct dhcp_context *context,
 	    /* pick a seed based on hwaddr */
 	    start.s_addr = htonl(ntohl(c->start.s_addr) + 
 				 ((j + c->addr_epoch) % (1 + ntohl(c->end.s_addr) - ntohl(c->start.s_addr))));
-
+#endif
 	  /* iterate until we find a free address. */
 	  addr = start;
 	  

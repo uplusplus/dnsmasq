@@ -9,7 +9,53 @@
 ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=Android.mk
 ```
 
+## 运行
 
+```
+./dnsmasq --keep-in-foreground --no-resolv --no-poll --dhcp-authoritative --dhcp-option-force=43,ANDROID_METERED --pid-file --user=dns_tether --dhcp-range=192.168.42.2,192.168.42.254,1h --dhcp-range=192.168.43.2,192.168.43.254,1h --dhcp-range=192.168.44.2,192.168.44.254,1h --dhcp-range=192.168.45.2,192.168.45.254,1h --dhcp-range=192.168.46.2,192.168.46.254,1h --dhcp-range=192.168.47.2,192.168.47.254,1h --dhcp-range=192.168.48.2,192.168.48.254,1h --dhcp-range=192.168.49.101,192.168.49.254,1h --dhcp-range=192.168.50.2,192.168.50.254,1h --dhcp-range=fd98:99d6:cd55:0:100::,fd98:99d6:cd55:0:1ff::,ra-names,slaac,2h -q -d
+
+```
+
+
+# 架构
+
+## 租约展期
+```
+dnsmasq-dhcp: RTR-SOLICIT(p2p-p2p0-6) 54:55:d5:77:dc:58
+dnsmasq-dhcp: DHCPDISCOVER(p2p-p2p0-6) 54:55:d5:77:dc:58
+dnsmasq-dhcp: DHCPOFFER(p2p-p2p0-6) 192.168.49.137 54:55:d5:77:dc:58
+dnsmasq-dhcp: DHCPDISCOVER(p2p-p2p0-6) 54:55:d5:77:dc:58
+dnsmasq-dhcp: DHCPOFFER(p2p-p2p0-6) 192.168.49.137 54:55:d5:77:dc:58
+dnsmasq-dhcp: DHCPREQUEST(p2p-p2p0-6) 192.168.49.137 54:55:d5:77:dc:58
+dnsmasq-dhcp: DHCPACK(p2p-p2p0-6) 192.168.49.137 54:55:d5:77:dc:58 WGRR-W09
+```
+
+```mermaid
+sequenceDiagram
+Client ->> Server:RTR-SOLICIT
+Client ->> Server:DHCPDISCOVER
+Server ->> Client:DHCPOFFER
+Client ->> Server:DHCPDISCOVER
+Server ->> Client:DHCPOFFER
+Client ->> Server:DHCPREQUEST
+Server ->> Client:DHCPACK
+```
+
+## 调用序列
+```mermaid
+sequenceDiagram
+participant dnsmasq
+participant rfc2131
+participant rfc3315
+participant dhcp
+
+dnsmasq ->> dhcp:dhcp_packet
+dhcp ->> rfc2131:dhcp_reply
+rfc2131 ->>dhcp:address_allocate
+dnsmasq ->> rfc3315:dhcp6_packet
+rfc3315 ->>rfc3315:dhcp6_reply
+rfc3315 ->>dhcp:address_allocate
+```
 
 # 关于dhcp6
 
