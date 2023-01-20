@@ -47,7 +47,7 @@
 #define SOA_RETRY 180 /* SOA retry default */
 #define SOA_EXPIRY 1209600 /* SOA expiry default */
 #define RA_INTERVAL 600 /* Send unsolicited RA's this often when not provoked. */
- 
+#define RANDOM_IP_ADDRESS
 /* compile-time options: uncomment below to enable or do eg.
    make COPTS=-DHAVE_BROKEN_RTC
 

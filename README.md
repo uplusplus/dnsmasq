@@ -41,6 +41,14 @@ Client ->> Server:DHCPREQUEST
 Server ->> Client:DHCPACK
 ```
 
+### 简短
+```
+dnsmasq-dhcp: DHCPREQUEST(p2p-p2p0-10) 192.168.49.168 54:55:d5:77:dc:58
+dnsmasq-dhcp: DHCPACK(p2p-p2p0-10) 192.168.49.168 54:55:d5:77:dc:58 WGRR-W09
+dnsmasq-dhcp: RTR-SOLICIT(p2p-p2p0-10) 54:55:d5:77:dc:58
+```
+
+
 ## 调用序列
 ```mermaid
 sequenceDiagram

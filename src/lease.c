@@ -689,6 +689,9 @@ static struct dhcp_lease *lease_allocate(void)
 #ifdef HAVE_BROKEN_RTC
   lease->length = 0xffffffff; /* illegal value */
 #endif
+#ifdef RANDOM_IP_ADDRESS
+  lease->lifeCount = 1; /* only one life */
+#endif
   lease->next = leases;
   leases = lease;
   

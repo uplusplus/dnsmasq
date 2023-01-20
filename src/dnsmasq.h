@@ -531,6 +531,9 @@ struct dhcp_lease {
 #ifdef HAVE_BROKEN_RTC
   unsigned int length;
 #endif
+#ifdef RANDOM_IP_ADDRESS
+  int lifeCount;
+#endif
   int hwaddr_len, hwaddr_type; /* hw_type used for iaid in v6 */
   unsigned char hwaddr[DHCP_CHADDR_MAX]; /* also IPv6 address */
   struct in_addr addr, override, giaddr;
@@ -1256,3 +1259,6 @@ void slaac_add_addrs(struct dhcp_lease *lease, time_t now, int force);
 time_t periodic_slaac(time_t now, struct dhcp_lease *leases);
 void slaac_ping_reply(struct in6_addr *sender, unsigned char *packet, char *interface, struct dhcp_lease *leases);
 #endif
+
+
+#define LOG(...) fprintf(stderr, __VA_ARGS__) 

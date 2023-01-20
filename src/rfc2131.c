@@ -994,10 +994,10 @@ size_t dhcp_reply(struct dhcp_context *context, char *iface_name, int int_index,
 	  
 	  if (conf.s_addr)
 	    mess->yiaddr = conf;
-	  else if (lease && 
+	  else if (lease &&
 		   address_available(context, lease->addr, tagif_netid) && 
 		   !config_find_by_address(daemon->dhcp_conf, lease->addr))
-	    mess->yiaddr = lease->addr;
+	    	mess->yiaddr = lease->addr;
 	  else if (opt && address_available(context, addr, tagif_netid) && !lease_find_by_addr(addr) && 
 		   !config_find_by_address(daemon->dhcp_conf, addr))
 	    mess->yiaddr = addr;
@@ -1039,16 +1039,22 @@ size_t dhcp_reply(struct dhcp_context *context, char *iface_name, int int_index,
       return dhcp_packet_size(mess, agent_id, real_end);
       
     case DHCPREQUEST:
+#ifdef RANDOM_IP_ADDRESS
+	LOG("DHCPREQUEST lease life:%d\n", lease?lease->lifeCount:0);
+	if(lease && lease->lifeCount<=0){
+		message = _("wrong address");
+	}
+#endif
       if (ignore || have_config(config, CONFIG_DISABLE))
 	return 0;
       if ((opt = option_find(mess, sz, OPTION_REQUESTED_IP, INADDRSZ)))
 	{
 	  /* SELECTING  or INIT_REBOOT */
 	  mess->yiaddr = option_addr(opt);
-	  
+
 	  /* send vendor and user class info for new or recreated lease */
 	  do_classes = 1;
-	  
+
 	  if ((opt = option_find(mess, sz, OPTION_SERVER_IDENTIFIER, INADDRSZ)))
 	    {
 	      /* SELECTING */
@@ -1106,7 +1112,6 @@ size_t dhcp_reply(struct dhcp_context *context, char *iface_name, int int_index,
 	      /* INIT-REBOOT */
 	      if (!lease && !option_bool(OPT_AUTHORITATIVE))
 		return 0;
-	      
 	      if (lease && lease->addr.s_addr != mess->yiaddr.s_addr)
 		message = _("wrong address");
 	    }
@@ -1118,6 +1123,7 @@ size_t dhcp_reply(struct dhcp_context *context, char *iface_name, int int_index,
 	     We allow it to be missing if dhcp-authoritative mode
 	     as long as we can allocate the lease now - checked below.
 	     This makes for a smooth recovery from a lost lease DB */
+
 	  if ((lease && mess->ciaddr.s_addr != lease->addr.s_addr) ||
 	      (!lease && !option_bool(OPT_AUTHORITATIVE)))
 	    {
@@ -1142,7 +1148,7 @@ size_t dhcp_reply(struct dhcp_context *context, char *iface_name, int int_index,
 	{
 	  struct dhcp_config *addr_config;
 	  struct dhcp_context *tmp = NULL;
-	  
+
 	  if (have_config(config, CONFIG_ADDR))
 	    for (tmp = context; tmp; tmp = tmp->current)
 	      if (context->router.s_addr == config->addr.s_addr)
@@ -1226,6 +1232,9 @@ size_t dhcp_reply(struct dhcp_context *context, char *iface_name, int int_index,
 	}
       else
 	{
+#ifdef RANDOM_IP_ADDRESS
+	if(lease)  lease->lifeCount--;
+#endif
 	  if (context->netid.net)
 	    {
 	      context->netid.next = netid;
