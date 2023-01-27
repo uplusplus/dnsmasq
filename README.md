@@ -115,19 +115,19 @@ DHCPv6服务器以[fe80::0011:22ff:fe33:5566]:547 到[fe80::aabb:ccff:fedd:eeff]
 
 |DHCPv6 消息|	描述|	等效的 DHCPv4 消息|
 |------|------|------|
-|要求（solicit）	|由客户端发送以定位服务器。|	DHCPDiscover|
-|公告（advertise）|	由服务器对 “要求” 消息进行响应时发送以指明可用性。	|DHCPOffer|
-|请求（request）|	由客户端发送以请求来自特定服务器的地址或配置设置。	|DHCPRequest|
-|确认（confirm）|	由客户端发送给所有服务器，以确定对于已连接的链接客户端的配置是否有效。	|DHCPRequest|
-|更新（renew）	|由客户端发送给特定服务器以延长分配地址的生存期并获取更新的配置设置。	|DHCPRequest|
-|重新绑定（rebind）|	未接收到对 “更新” 消息的响应时由客户端发送给任何服务器。	|DHCPRequest|
-|应答（reply）|	对要求、请求、更新、重新绑定、信息请求、确认、发布或拒绝消息进行响应时由服务器发送给特定客户端。|	DHCPAck|
-|发布（release）	|由客户端发送以指明客户端不再使用分配的地址。	|DHCPRelease|
-|拒绝（decline）|	由客户端发送给特定服务器以指明分配的地址已在使用中。	|DHCPDecline|
-|重新配置（reconfigure）|	由服务器发送给客户端以指明该服务器具有新的或更新的配置设置。客户端随后发送 “更新” 或“信息请求”消息。|	N/A|
-|信息请求（information-request）|	由客户端发送以请求配置设置（但不包括地址）。	|DHCPInform|
-|中继转发（relay-forw）|	由中继代理发送以转发消息给服务器。中继转发包含封装为 DHCPv6 中继消息选项的客户端消息。	|N/A|
-|中继应答（relay-reply）	|由服务器发送以通过中继代理发送消息给客户端。中继应答包含封装为 DHCPv6 中继消息选项的服务器消息。	|N/A|
+|要求（solicit）	|由客户端发送以定位服务器。								      |DHCPDiscover|
+|公告（advertise）	|由服务器对 “要求” 消息进行响应时发送以指明可用性。						|DHCPOffer|
+|请求（request）	|由客户端发送以请求来自特定服务器的地址或配置设置。						|DHCPRequest|
+|确认（confirm）	|由客户端发送给所有服务器，以确定对于已连接的链接客户端的配置是否有效。				|DHCPRequest|
+|更新（renew）		|由客户端发送给特定服务器以延长分配地址的生存期并获取更新的配置设置。				|DHCPRequest|
+|重新绑定（rebind）	|未接收到对 “更新” 消息的响应时由客户端发送给任何服务器。					|DHCPRequest|
+|应答（reply）		|对要求、请求、更新、重新绑定、信息请求、确认、发布或拒绝消息进行响应时由服务器发送给特定客户端。  |DHCPAck|
+|发布（release）	|由客户端发送以指明客户端不再使用分配的地址。							|DHCPRelease|
+|拒绝（decline）	|由客户端发送给特定服务器以指明分配的地址已在使用中。						|DHCPDecline|
+|重新配置（reconfigure）|由服务器发送给客户端以指明该服务器具有新的或更新的配置设置。客户端随后发送 “更新” 或“信息请求”消息。|N/A|
+|信息请求（information-request）|由客户端发送以请求配置设置（但不包括地址）。						|DHCPInform|
+|中继转发（relay-forw）	|由中继代理发送以转发消息给服务器。中继转发包含封装为 DHCPv6 中继消息选项的客户端消息。		 |N/A|
+|中继应答（relay-reply）|由服务器发送以通过中继代理发送消息给客户端。中继应答包含封装为 DHCPv6 中继消息选项的服务器消息。 |N/A|
 
 
 ## 地址配置
@@ -161,6 +161,35 @@ DHCPv6客户端链路因某种原因中断又恢复，或者客户端连接到�
 
 ### 释放地址
 最后客户端不再使用分配的地址时，向选定的服务器发送RELEASE消息请求服务器回收分配的IPv6地址。
+
+### DHCP包格式
+```
+struct dhcp_packet {
+  u8 op, htype, hlen, hops;
+  u32 xid;
+  u16 secs, flags;
+  struct in_addr ciaddr, yiaddr, siaddr, giaddr;
+  u8 chaddr[DHCP_CHADDR_MAX], sname[64], file[128];
+  u8 options[312];
+};
+```
+|字段|类型|值|
+|-----|-----|-----|
+|op     |报文操作类型                       |1：请求报文，2：应答报文|
+|htype  |客户端MAC地址类型                  |指明网络类型，1：Ethernet MAC|
+|hlen   |客户端MAC地址长度                  |以太网MAC地址长度6|
+|hops   |DHCP报文经过的DHCP中继数目         |默认为0.dhcp请求报文每经过一个中继增加1，如果需要经过路由，同样＋1|
+|xid    |客户端通过dhcp discover报文发起一次请求报文时选择的随机数       	|相当于请求标识，一次IP请求过程，所有的xid都是一样的|
+|secs   |客户端从获取IP地址或者续约过程开始到现在所消耗的时间，以秒为单位   	 |在没有获取到IP之前，这个值一直为0。|
+|flags  |标志位，只使用第15比特（最左边），是广播应答标识位			|0表示单播，1表示广播。|
+|ciaddr |dhcp客户端ip地址		    |仅在服务器发送的ACK报文中显示，其他报文均显示0。因为，在ACK之前，IP地址还没有真正分配给客户端。|
+|yiaddr |dhcp服务器分配给客户端的IP地址      |仅在dhcp服务器发送的offer和ACK报文中显示，其他报文显示0.|
+|siaddr |下一个为dhcp客户端分配IP地址等信息的dhcp服务器IP地址			|仅在dhcp offer、ACK中显示，其他报文均显示0.|
+|giaddr |dhcp客户端发出请求报文后经过的第一个dhcp中继的IP地址			|如果没有经过中继，则显示0。|
+|chaddr |dhcp客户端MAC地址		    |在每个报文中都会显示对应dhcp客户端的MAC地址。|
+|sname  |为dhcp客户端分配IP地址的dhcp服务器名称（DNS域名格式）			|在offer和ACK报文中显示发送报文的dhcp服务器名称，其他报文显示0.|
+|file   |dhcp服务器为客户端指定的启动配置文件名称和路径信息			|仅在dhcp offer报文中显示，其他报文中显示为空。|
+|options|可选项字段			    |长度可变，格式为TLV“代码+长度+数据”|
 
 ## RA报文M/O标志位
 设备在获取IPv6地址等信息时，会先发送RS报文请求链路上的路由设备，路由设备受到RS报文后会发送相应的RA报文来表示自身能够提供的IPv6服务类型。  

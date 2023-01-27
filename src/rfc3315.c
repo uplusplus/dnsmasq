@@ -552,7 +552,7 @@ static int dhcp6_no_relay(int msg_type, struct in6_addr *link_address, struct dh
 	/* set reply message type */
 	*outmsgtypep = rapid_commit ? DHCP6REPLY : DHCP6ADVERTISE;
 
-	log6_packet(&state, "DHCPSOLICIT", NULL, ignore ? _("ignored") : NULL);
+	log6_packet(&state, "DHCP6SOLICIT", NULL, ignore ? _("ignored") : NULL);
 	
 	if (ignore)
 	  return 0;
@@ -640,7 +640,7 @@ static int dhcp6_no_relay(int msg_type, struct in6_addr *link_address, struct dh
 #endif
 
 	    o = build_ia(&state, &t1cntr);
-
+#ifndef RANDOM_IP_ADDRESS
 	    for (ia_counter = 0; ia_option; ia_counter++, ia_option = opt6_find(opt6_next(ia_option, ia_end), ia_end, OPTION6_IAADDR, 24))
 	      {
 		req_addr = opt6_ptr(ia_option, 0);
@@ -716,7 +716,7 @@ static int dhcp6_no_relay(int msg_type, struct in6_addr *link_address, struct dh
 		    address_assigned = 1;
 		  }
 	      }
-		 	   
+#endif 	   
 	    /* Return addresses for all valid contexts which don't yet have one */
 	    while ((c = address6_allocate(context, state.clid, state.clid_len, state.iaid, ia_counter, solicit_tags, plain_range, &addr)))
 	      {
@@ -813,7 +813,18 @@ static int dhcp6_no_relay(int msg_type, struct in6_addr *link_address, struct dh
 			put_opt6_short(DHCP6UNSPEC);
 			put_opt6_string(_("address in use"));
 			end_opt6(o1);
-		      } 
+		      }
+#ifdef RANDOM_IP_ADDRESS
+		    else if(!lease_is_alive(lease6_find(state.clid, state.clid_len,
+					  state.ia_type == OPTION6_IA_NA ? LEASE_NA : LEASE_TA, 
+					  state.iaid, req_addr), dnsmasq_time())){
+				/* dead. */
+				o1 = new_opt6(OPTION6_STATUS_CODE);
+				put_opt6_short(DHCP6UNSPEC);
+				put_opt6_string(_("address unavailable"));
+				end_opt6(o1);
+			}
+#endif
 		    else 
 		      {
 			if (!dynamic)

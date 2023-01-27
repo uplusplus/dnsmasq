@@ -532,7 +532,7 @@ struct dhcp_lease {
   unsigned int length;
 #endif
 #ifdef RANDOM_IP_ADDRESS
-  int lifeCount;
+  int birth_time;
 #endif
   int hwaddr_len, hwaddr_type; /* hw_type used for iaid in v6 */
   unsigned char hwaddr[DHCP_CHADDR_MAX]; /* also IPv6 address */
@@ -1097,6 +1097,10 @@ void lease_find_interfaces(time_t now);
 #ifdef HAVE_SCRIPT
 void lease_add_extradata(struct dhcp_lease *lease, unsigned char *data, 
 			 unsigned int len, int delim);
+#ifdef RANDOM_IP_ADDRESS
+int lease_is_alive(struct dhcp_lease *lease, time_t now);
+#endif
+
 #endif
 #endif
 

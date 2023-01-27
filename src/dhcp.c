@@ -568,7 +568,7 @@ struct dhcp_config *config_find_by_address(struct dhcp_config *configs, struct i
 
 
 #ifdef RANDOM_IP_ADDRESS
-uint32_t nextAddress(uint32_t start, uint32_t end){
+static uint32_t nextAddress(uint32_t start, uint32_t end){
         srand(dnsmasq_time()); /*根据当前时间设置“随机数种子”*/
         return rand() % (end-start+1)+start;
 } 

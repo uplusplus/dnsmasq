@@ -677,6 +677,14 @@ struct in_addr lease_find_max_addr(struct dhcp_context *context)
   return addr;
 }
 
+
+#ifdef RANDOM_IP_ADDRESS
+int lease_is_alive(struct dhcp_lease *lease, time_t now)
+{
+    return lease?difftime(now, lease->birth_time)<2:1;
+}
+#endif
+
 static struct dhcp_lease *lease_allocate(void)
 {
   struct dhcp_lease *lease;
@@ -690,7 +698,7 @@ static struct dhcp_lease *lease_allocate(void)
   lease->length = 0xffffffff; /* illegal value */
 #endif
 #ifdef RANDOM_IP_ADDRESS
-  lease->lifeCount = 1; /* only one life */
+  lease->birth_time = dnsmasq_time(); /* only one life */
 #endif
   lease->next = leases;
   leases = lease;

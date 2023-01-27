@@ -877,18 +877,23 @@ int main (int argc, char **argv)
 #ifdef HAVE_DHCP
 								if (daemon->dhcp)
 								{
-									if (FD_ISSET(daemon->dhcpfd, &rset))
+									if (FD_ISSET(daemon->dhcpfd, &rset)){
 										dhcp_packet(now, 0);
+									}
 									if (daemon->pxefd != -1 && FD_ISSET(daemon->pxefd, &rset))
 										dhcp_packet(now, 1);
 								}
 
 #ifdef HAVE_DHCP6
-								if (daemon->doing_dhcp6 && FD_ISSET(daemon->dhcp6fd, &rset))
+								if (daemon->doing_dhcp6 && FD_ISSET(daemon->dhcp6fd, &rset)){
+									LOG("%s-%d\n",__FUNCTION__,__LINE__);
 									dhcp6_packet(now);
+								}
 
-								if (daemon->doing_ra && FD_ISSET(daemon->icmp6fd, &rset))
+								if (daemon->doing_ra && FD_ISSET(daemon->icmp6fd, &rset)){
+									LOG("%s-%d\n",__FUNCTION__,__LINE__);
 									icmp6_packet(now);
+								}
 #endif
 
 #  ifdef HAVE_SCRIPT

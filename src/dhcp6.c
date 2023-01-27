@@ -93,6 +93,8 @@ void dhcp6_packet(time_t now)
   struct iname *tmp;
   unsigned short port;
 
+  LOG("%s-%d\n",__FUNCTION__,__LINE__);
+
   msg.msg_control = control_u.control6;
   msg.msg_controllen = sizeof(control_u);
   msg.msg_flags = 0;
@@ -132,7 +134,8 @@ void dhcp6_packet(time_t now)
   parm.addr_match = 0;
   memset(&parm.fallback, 0, IN6ADDRSZ);
 
-  for (context = daemon->dhcp6; context; context = context->next)
+  for (context = daemon->dhcp6; context; context = context->next){
+    LOG("%s-%d dhcp context: %s\n",__FUNCTION__,__LINE__, context->template_interface);
     if (IN6_IS_ADDR_UNSPECIFIED(&context->start6) && context->prefix == 0)
       {
 	/* wildcard context for DHCP-stateless only */
@@ -145,7 +148,9 @@ void dhcp6_packet(time_t now)
 	context->current = context;
 	memset(&context->local6, 0, IN6ADDRSZ);
       }
-  
+  }
+    LOG("%s-%d dhcp context: %s\n",__FUNCTION__,__LINE__, parm.current);
+
   if (!iface_enumerate(AF_INET6, &parm, complete_context6))
     return;
   
@@ -265,6 +270,25 @@ struct dhcp_config *config_find_by_address6(struct dhcp_config *configs, struct 
   return NULL;
 }
 
+
+#ifdef RANDOM_IP_ADDRESS
+u64
+rand64()
+{
+	srand(dnsmasq_time()); /*根据当前时间设置“随机数种子”*/
+    return ((u64)rand()) & 0x0000000000000FFFu | \
+			(((u64)rand())<<12) & 0x0000000000FFF000u | \
+			(((u64)rand())<<24) & 0x0000000FFF000000u | \
+			(((u64)rand())<<36) & 0x0000FFF000000000u | \
+			(((u64)rand())<<48) & 0x0FFF000000000000u | \
+			(((u64)rand())<<60) & 0xF000000000000000u;
+}
+
+static u64 nextAddress6(u64 start, u64 end){
+        return rand64() % (end-start+1)+start;
+} 
+#endif
+
 struct dhcp_context *address6_allocate(struct dhcp_context *context,  unsigned char *clid, int clid_len, 
 				       int iaid, int serial, struct dhcp_netid *netids, int plain_range, struct in6_addr *ans)   
 {
@@ -294,12 +318,15 @@ struct dhcp_context *address6_allocate(struct dhcp_context *context,  unsigned c
 	continue;
       else
 	{ 
+#ifdef RANDOM_IP_ADDRESS
+        start = nextAddress6(addr6part(&c->start6),  addr6part(&c->end6));
+#else
 	  if (option_bool(OPT_CONSEC_ADDR))
 	    /* seed is largest extant lease addr in this context */
 	    start = lease_find_max_addr6(c) + serial;
 	  else
 	    start = addr6part(&c->start6) + ((j + c->addr_epoch) % (1 + addr6part(&c->end6) - addr6part(&c->start6)));
-
+#endif
 	  /* iterate until we find a free address. */
 	  addr = start;
 	  
@@ -508,6 +535,7 @@ static int construct_worker(struct in6_addr *local, int prefix,
   (void)preferred;
 
   struct cparam *param = vparam;
+  LOG("%s-%d\n",__FUNCTION__,__LINE__);
 
   if (IN6_IS_ADDR_LOOPBACK(local) ||
       IN6_IS_ADDR_LINKLOCAL(local) ||
@@ -516,8 +544,12 @@ static int construct_worker(struct in6_addr *local, int prefix,
 
   if (!indextoname(daemon->doing_dhcp6 ? daemon->dhcp6fd : daemon->icmp6fd, if_index, ifrn_name))
     return 0;
-  
+    LOG("%s-%d\n",__FUNCTION__,__LINE__);
+
   for (template = daemon->dhcp6; template; template = template->next)
+  {
+    	  LOG("%s-%d template %s\n",__FUNCTION__,__LINE__, template->template_interface);
+
     if (!(template->flags & CONTEXT_TEMPLATE))
       {
 	/* non-template entries, just fill in interface and local addresses */
@@ -532,6 +564,8 @@ static int construct_worker(struct in6_addr *local, int prefix,
       }
     else if (addr6part(local) == addr6part(&template->start6) && wildcard_match(template->template_interface, ifrn_name))
       {
+	  LOG("%s-%d\n",__FUNCTION__,__LINE__);
+
 	start6 = *local;
 	setaddr6part(&start6, addr6part(&template->start6));
 	end6 = *local;
@@ -571,6 +605,7 @@ static int construct_worker(struct in6_addr *local, int prefix,
 	    log_context(AF_INET6, context);
 	  } 
       }
+  }
   
   return 1;
 }
@@ -582,6 +617,9 @@ void dhcp_construct_contexts(time_t now)
   param.newone = 0;
   param.newname = 0;
   param.now = now;
+
+  LOG("%s-%d\n",__FUNCTION__,__LINE__);
+
 
   for (context = daemon->dhcp6; context; context = context->next)
     {

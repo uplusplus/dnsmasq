@@ -948,6 +948,14 @@ size_t dhcp_reply(struct dhcp_context *context, char *iface_name, int int_index,
       return 0;
       
     case DHCPDISCOVER:
+#ifdef RANDOM_IP_ADDRESS
+	LOG("DISCOVERY lease:%p\n", lease);
+    	if (lease && lease->addr.s_addr == mess->ciaddr.s_addr)
+		lease_prune(lease, now);
+	if (lease && !address_allocate(context, &lease->addr, emac, emac_len, tagif_netid, now))
+	    message = _("no address available");      
+#endif
+
       if (ignore || have_config(config, CONFIG_DISABLE))
 	{
 	  message = _("ignored");
@@ -994,8 +1002,7 @@ size_t dhcp_reply(struct dhcp_context *context, char *iface_name, int int_index,
 	  
 	  if (conf.s_addr)
 	    mess->yiaddr = conf;
-	  else if (lease &&
-		   address_available(context, lease->addr, tagif_netid) && 
+	  else if (lease &&  address_available(context, lease->addr, tagif_netid) && 
 		   !config_find_by_address(daemon->dhcp_conf, lease->addr))
 	    	mess->yiaddr = lease->addr;
 	  else if (opt && address_available(context, addr, tagif_netid) && !lease_find_by_addr(addr) && 
@@ -1040,9 +1047,8 @@ size_t dhcp_reply(struct dhcp_context *context, char *iface_name, int int_index,
       
     case DHCPREQUEST:
 #ifdef RANDOM_IP_ADDRESS
-	LOG("DHCPREQUEST lease life:%d\n", lease?lease->lifeCount:0);
-	if(lease && lease->lifeCount<=0){
-		message = _("wrong address");
+	if(!lease_is_alive(lease, now)){
+		message = _("address life end.");
 	}
 #endif
       if (ignore || have_config(config, CONFIG_DISABLE))
@@ -1142,7 +1148,7 @@ size_t dhcp_reply(struct dhcp_context *context, char *iface_name, int int_index,
 	  mess->yiaddr = mess->ciaddr;
 	}
       
-      log_packet("DHCPREQUEST", &mess->yiaddr, emac, emac_len, iface_name, NULL, mess->xid);
+      log_packet("DHCPREQUEST", &mess->yiaddr, emac, emac_len, iface_name, message, mess->xid);
  
       if (!message)
 	{
@@ -1232,9 +1238,6 @@ size_t dhcp_reply(struct dhcp_context *context, char *iface_name, int int_index,
 	}
       else
 	{
-#ifdef RANDOM_IP_ADDRESS
-	if(lease)  lease->lifeCount--;
-#endif
 	  if (context->netid.net)
 	    {
 	      context->netid.next = netid;
