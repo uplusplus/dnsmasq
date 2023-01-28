@@ -209,7 +209,7 @@ static void send_ra(time_t now, int iface, char *iface_name, struct in6_addr *de
   ra->retrans_time = 0;
 
   parm.ind = iface;
-  parm.managed = 1;
+  parm.managed = 0;
   parm.other = 0;
   parm.found_context = 0;
   parm.if_name = iface_name;

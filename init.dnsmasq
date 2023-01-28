@@ -1,3 +1,12 @@
 ndc tether stop
 echo $(/system/bin/pkill dnsmasq)
-./dnsmasq -q -d --keep-in-foreground --no-resolv --no-poll --dhcp-authoritative --dhcp-option-force=43,ANDROID_METERED --pid-file --user=dns_tether --dhcp-range=192.168.42.2,192.168.42.254,1h --dhcp-range=192.168.43.2,192.168.43.254,1h --dhcp-range=192.168.44.2,192.168.44.254,1h --dhcp-range=192.168.45.2,192.168.45.254,1h --dhcp-range=192.168.46.2,192.168.46.254,1h --dhcp-range=192.168.47.2,192.168.47.254,1h --dhcp-range=192.168.48.2,192.168.48.254,1h --dhcp-range=192.168.49.101,192.168.49.254,1h --dhcp-range=192.168.50.2,192.168.50.254,1h --dhcp-range=::100,::1ff,constructor:$(ifconfig|grep p2p-p2p0|awk -F" " '{print $1}'),ra-names,slaac,2h 
+echo $(/system/bin/pkill libdns.so)
+# fdc7:da2d:c717:0:5e0e:3d64:f7be:8388
+prefix="$(ifconfig|grep p2p-p2p0 -A 4|grep inet6|grep -v fe80|awk -F'[: ]+' '{print $4":"$5":"$6}')"
+dev=$(ifconfig|grep p2p-p2p0|awk -F" " '{print $1}')
+
+echo $dev,${prefix}
+
+#constructor:${dev},
+
+./dnsmasq -q -d --keep-in-foreground --no-resolv --no-poll --dhcp-authoritative --dhcp-option-force=43,ANDROID_METERED --pid-file --user=dns_tether --dhcp-range=192.168.42.2,192.168.42.254,1h --dhcp-range=192.168.43.2,192.168.43.254,1h --dhcp-range=192.168.44.2,192.168.44.254,1h --dhcp-range=192.168.45.2,192.168.45.254,1h --dhcp-range=192.168.46.2,192.168.46.254,1h --dhcp-range=192.168.47.2,192.168.47.254,1h --dhcp-range=192.168.48.2,192.168.48.254,1h --dhcp-range=192.168.49.101,192.168.49.254,1h --dhcp-range=192.168.50.2,192.168.50.254,1h --dhcp-range=${prefix}::100:0,${prefix}::1ff:fff,ra-names,slaac,2h 

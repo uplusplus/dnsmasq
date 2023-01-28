@@ -135,7 +135,7 @@ void dhcp6_packet(time_t now)
   memset(&parm.fallback, 0, IN6ADDRSZ);
 
   for (context = daemon->dhcp6; context; context = context->next){
-    LOG("%s-%d dhcp context: %s\n",__FUNCTION__,__LINE__, context->template_interface);
+    LOG("%s-%d dhcp context: %s 0x%llx~%llx\n",__FUNCTION__,__LINE__, context->template_interface, addr6part(&context->start6), addr6part(&context->end6));
     if (IN6_IS_ADDR_UNSPECIFIED(&context->start6) && context->prefix == 0)
       {
 	/* wildcard context for DHCP-stateless only */
