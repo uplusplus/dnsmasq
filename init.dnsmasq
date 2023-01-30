@@ -2,6 +2,8 @@ $(su -c ndc tether stop)
 $(su -c /system/bin/pkill dnsmasq)
 $(su -c /system/bin/pkill libdns.so)
 
+#ndc tether interface list|grep p2p|awk '{print $3}'
+
 for dev in `ifconfig|grep p2p|awk -F" " '{print $1}'`
 do
     if [ "up" == "`su -c cat /sys/class/net/$dev/operstate`" ]; then
@@ -18,6 +20,4 @@ fi
 
 echo $dev,${prefix}
 
-#constructor:${dev},
-
-su -c ./dnsmasq -q -d --keep-in-foreground --bind-interfaces --no-resolv --no-poll --dhcp-authoritative --dhcp-option-force=43,ANDROID_METERED --pid-file --user=dns_tether --dhcp-range=192.168.42.2,192.168.42.254,1h --dhcp-range=192.168.43.2,192.168.43.254,1h --dhcp-range=192.168.44.2,192.168.44.254,1h --dhcp-range=192.168.45.2,192.168.45.254,1h --dhcp-range=192.168.46.2,192.168.46.254,1h --dhcp-range=192.168.47.2,192.168.47.254,1h --dhcp-range=192.168.48.2,192.168.48.254,1h --dhcp-range=192.168.49.101,192.168.49.254,1h --dhcp-range=192.168.50.2,192.168.50.254,1h --dhcp-range=${prefix}:1000:0:0:0,${prefix}:ffff:ffff:ffff:ffff,ra-names,slaac,2h 
+su -c ./dnsmasq -q -d --keep-in-foreground --bind-interfaces --no-resolv --no-poll --dhcp-authoritative --dhcp-option-force=43,ANDROID_METERED --pid-file --user=dns_tether --dhcp-range=192.168.42.2,192.168.42.254,1h --dhcp-range=192.168.43.2,192.168.43.254,1h --dhcp-range=192.168.44.2,192.168.44.254,1h --dhcp-range=192.168.45.2,192.168.45.254,1h --dhcp-range=192.168.46.2,192.168.46.254,1h --dhcp-range=192.168.47.2,192.168.47.254,1h --dhcp-range=192.168.48.2,192.168.48.254,1h --dhcp-range=192.168.49.101,192.168.49.254,1h --dhcp-range=192.168.50.2,192.168.50.254,1h --dhcp-range=::100,::ffff:ffff:ffff,constructor:$dev,ra-names,slaac,2h 

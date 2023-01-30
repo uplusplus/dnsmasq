@@ -716,7 +716,7 @@ static int dhcp6_no_relay(int msg_type, struct in6_addr *link_address, struct dh
 		    address_assigned = 1;
 		  }
 	      }
-#endif 	   
+#endif 	//not define RANDOM_IP_ADDRESS   
 	    /* Return addresses for all valid contexts which don't yet have one */
 	    while ((c = address6_allocate(context, state.clid, state.clid_len, state.iaid, ia_counter, solicit_tags, plain_range, &addr)))
 	      {

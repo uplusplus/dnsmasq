@@ -135,7 +135,9 @@ void dhcp6_packet(time_t now)
   memset(&parm.fallback, 0, IN6ADDRSZ);
 
   for (context = daemon->dhcp6; context; context = context->next){
-    LOG("%s-%d dhcp context: %s 0x%llx~%llx\n",__FUNCTION__,__LINE__, context->template_interface, addr6part(&context->start6), addr6part(&context->end6));
+//     LOG("%s-%d dhcp context:%p 0x%llx~%llx prefix:%x\n",__FUNCTION__,__LINE__, context, addr6part(&context->start6), addr6part(&context->end6), context->prefix);
+//     log_context(AF_INET6, context);
+
     if (IN6_IS_ADDR_UNSPECIFIED(&context->start6) && context->prefix == 0)
       {
 	/* wildcard context for DHCP-stateless only */
@@ -319,6 +321,7 @@ struct dhcp_context *address6_allocate(struct dhcp_context *context,  unsigned c
       else
 	{ 
 #ifdef RANDOM_IP_ADDRESS
+	log_context(AF_INET6, c);
         start = nextAddress6(addr6part(&c->start6),  addr6part(&c->end6));
 #else
 	  if (option_bool(OPT_CONSEC_ADDR))
@@ -535,7 +538,6 @@ static int construct_worker(struct in6_addr *local, int prefix,
   (void)preferred;
 
   struct cparam *param = vparam;
-  LOG("%s-%d\n",__FUNCTION__,__LINE__);
 
   if (IN6_IS_ADDR_LOOPBACK(local) ||
       IN6_IS_ADDR_LINKLOCAL(local) ||
@@ -544,11 +546,11 @@ static int construct_worker(struct in6_addr *local, int prefix,
 
   if (!indextoname(daemon->doing_dhcp6 ? daemon->dhcp6fd : daemon->icmp6fd, if_index, ifrn_name))
     return 0;
-    LOG("%s-%d\n",__FUNCTION__,__LINE__);
 
   for (template = daemon->dhcp6; template; template = template->next)
   {
-    	  LOG("%s-%d template %s\n",__FUNCTION__,__LINE__, template->template_interface);
+    LOG("%s-%d template name:%s  0x%llx~%llx prefix:%x interface:[%s-local:%llx]\n",__FUNCTION__,__LINE__, template->template_interface, 
+    	addr6part(&template->start6), addr6part(&template->end6), template->prefix, ifrn_name, addr6part(local));
 
     if (!(template->flags & CONTEXT_TEMPLATE))
       {
@@ -562,10 +564,8 @@ static int construct_worker(struct in6_addr *local, int prefix,
 	  }
 	
       }
-    else if (addr6part(local) == addr6part(&template->start6) && wildcard_match(template->template_interface, ifrn_name))
+    else if (/*addr6part(local) == addr6part(&template->start6) && */wildcard_match(template->template_interface, ifrn_name))
       {
-	  LOG("%s-%d\n",__FUNCTION__,__LINE__);
-
 	start6 = *local;
 	setaddr6part(&start6, addr6part(&template->start6));
 	end6 = *local;
