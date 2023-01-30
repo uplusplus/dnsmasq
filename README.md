@@ -353,3 +353,32 @@ record is added to the DNS for this IPv6
 address. Note that this is only happens for directly-connected
 networks, (not one doing DHCP via a relay) and it will not work 
 if a host is using privacy extensions. 
+
+
+
+### DHCPv6 and RA with dnsmasq
+Dnsmasq has been a good companion of small network administrators for years. It proved to be a swiss knife for the IPv4 networks, providing DHCP and DNS services…
+The IPv6 is coming, whether you like it or not… And dnsmasq can help here too, by providing both DHCPv6 and RA services.
+However, there is a bit of confusion what the options flags in dhcp-range setting mean. Man pages help just a tiny bit…
+I’ve recently spend some time spoofing the packages and came up with the following results. The table below shows how the M (Managed Address Configuration Flag), O (Other Configuration Flag) and A (Address Configuration Flag) bits. I’ve skipped the O flag when M is set – in such scenario it can be ignored because it does not carry any meaningful information.
+
+ 
+
+Options___________________	M	O	A______	Comment
+no options
++		–	SLAAC disabled, stateful DHCPv6. This is identical to DHCPv4 service
+slaac
++		+	SLAAC enabled, stateful DHCPv6. Hosts will have at least two addresses – from DHCPv6 and SLAAC
+ra-names
+ra-names,slaac
++		+	SLAAC enabled, stateful DHCPv6. Based on the information received from host while DHCPv4 request, DNS tries to guess the auto-configured IPv6.
+ra-stateless	–	+	+	SLAAC enabled, stateless DHCPv6. Hosts will get only auto-configured address and get additional configuration from DHCPv6
+ra-stateless,ra-names	–	+	+	SLAAC enabled, stateless DHCPv6. Hosts will get only auto-configured address and get additional configuration from DHCPv6. DNS will try to guess the auto-configured addresses.
+ra-only	–	–	+	SLAAC enabled, DHCPv6 disabled. Hosts will get only auto-configured address. DNS might get configured by ND RDNSS.
+ 
+
+Have also in mind that Windows hosts (by default), in order to protect privacy, do two additional things:
+
+don’t follow EUI-64 and use different way of generating addresses when doing autonomous configuration. This means that setting the ra-names option will have no effect – DNS will not guess correctly the IPv6 address of those machines, so no entry in DNS will be populated. This behaviour can be changed and revert to EUI-64 by executing netsh interface ipv6 set privacy state=disabled command.
+configure additonal IPv6 address – so called temporary address – and prefere it when initializing outgoing connections. Again, this can be switched off by executing netsh interface ipv6 set global randomizeidentifiers=disabled
+Some android hosts (exp. my Nexus 7 running 4.4.4) still cannot be configured by stateful DHCPv6. The only supported way is SLAAC. My ZTE phone, running 4.2.1, successfully receives the unicast address when SLAAC is not allowed on the link…
